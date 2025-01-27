@@ -3,8 +3,13 @@ from fastapi.responses import StreamingResponse
 import subprocess
 from io import BytesIO
 from fastapi.middleware.cors import CORSMiddleware
+import whisper
+from pydub import AudioSegment
+import numpy as np
 
 app = FastAPI()
+
+model = whisper.load_model("base")
 
 # Allow CORS from specific origins (like your React app's port)
 app.add_middleware(
@@ -18,11 +23,24 @@ app.add_middleware(
 @app.post("/generate-subtitles")
 async def subtitleEndpoint(file: UploadFile=File(...), font: str=Form(...)):
 
+
+    #process input file
     file_content = await file.read()
+    audio = AudioSegment.from_file(BytesIO(file_content))
+    if audio.channels > 1:
+        audio = audio.set_channels(1)
+    audio = audio.set_frame_rate(16000)
+    samples = np.array(audio.get_array_of_samples(), dtype=np.float32)
+    samples /= np.max(np.abs(samples))
+
+    
+
+    speechToText(samples)
+
+
+
+
     input_file = BytesIO(file_content)
-    #print(file.filename)
-    speechToText(file)
-    print("hi2")
     return StreamingResponse(input_file, 
                              media_type=file.content_type,
                              headers={"Content-Disposition": f"attachment; filename={file.filename}"}
@@ -30,6 +48,10 @@ async def subtitleEndpoint(file: UploadFile=File(...), font: str=Form(...)):
     
 
 
-def speechToText(file: UploadFile=File(...)):
+def speechToText(audio):
+    #use open ai whisper to transcribe audio file to text
 
-    print("hi")
+    
+    result = model.transcribe(audio)
+    print(result["text"])
+    print('end')
