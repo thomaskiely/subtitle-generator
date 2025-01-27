@@ -16,11 +16,13 @@ app.add_middleware(
 )
 
 @app.post("/generate-subtitles")
-async def root( file: UploadFile=File(...), font: str=Form(...)):
+async def subtitleEndpoint(file: UploadFile=File(...), font: str=Form(...)):
 
     file_content = await file.read()
     input_file = BytesIO(file_content)
-    print(file.filename)
+    #print(file.filename)
+    speechToText(file)
+    print("hi2")
     return StreamingResponse(input_file, 
                              media_type=file.content_type,
                              headers={"Content-Disposition": f"attachment; filename={file.filename}"}
@@ -28,3 +30,6 @@ async def root( file: UploadFile=File(...), font: str=Form(...)):
     
 
 
+def speechToText(file: UploadFile=File(...)):
+
+    print("hi")

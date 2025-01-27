@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import './App.css';
 
-
 const App = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [font, setFont] = useState<string>("");
@@ -30,7 +29,7 @@ const App = () => {
     formData.append("font", font);
 
     try {
-      const response = await fetch("http://localhost:8000/generate-subtitles", {
+      const response = await fetch("http://127.0.0.1:8000/generate-subtitles", {
         method: "POST",
         body: formData,
       });

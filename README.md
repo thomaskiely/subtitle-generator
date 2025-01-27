@@ -1,3 +1,9 @@
+### Prerequisites
+- Python 3.10 (required for Whisper)
+- Node.js and npm (for the React front end)
+
+
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
