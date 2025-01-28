@@ -2,6 +2,12 @@
 - Python 3.10 (required for Whisper)
 - Node.js and npm (for the React front end)
 
+# Run the backend
+uvicorn main:app --reload --log-level debug
+
+# Run the frontend
+npm run dev
+
 
 
 # React + TypeScript + Vite
