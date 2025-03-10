@@ -71,7 +71,7 @@ const App = () => {
         {/* Show the download button if the file is ready */}
         {downloadLink && (
           <div>
-            <a href={downloadLink} download="generated_subtitles.mp4">
+            <a href={downloadLink} download="generated.mp4">
               <button type="button">Download Processed File</button>
             </a>
           </div>
