@@ -47,7 +47,7 @@ async def subtitleEndpoint(file: UploadFile=File(...), font: str=Form(...)):
 
     word_timestamps = speechToText(samples)
     generate_srt(word_timestamps)
- 
+    save_upload_file(file, "output_video.mp4")
     return StreamingResponse(input_file, 
                              media_type=file.content_type,
                              headers={"Content-Disposition": f"attachment; filename={file.filename}"}
@@ -56,6 +56,11 @@ async def subtitleEndpoint(file: UploadFile=File(...), font: str=Form(...)):
    
     
 
+def save_upload_file(upload_file: UploadFile, dest_path: str):
+    """Saves an UploadFile to a given file path."""
+    upload_file.file.seek(0)
+    with open(dest_path, "wb") as buffer:
+        shutil.copyfileobj(upload_file.file, buffer)
 
 def speechToText(audio):
     """
