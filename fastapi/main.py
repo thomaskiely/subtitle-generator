@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, Form
+from fastapi import FastAPI, File, UploadFile, Form, BackgroundTasks
 from fastapi.responses import StreamingResponse
 import subprocess
 from io import BytesIO
@@ -10,10 +10,10 @@ import shutil
 import os
 import asyncio
 import logging
+import uuid
 
 app = FastAPI()
-logger = logging.getLogger()
-
+logger = logging.getLogger('uvicorn.error')
 model = whisper.load_model("base")
 
 # Allow CORS from specific origins (like your React app's port)
@@ -26,10 +26,19 @@ app.add_middleware(
 )
 
 @app.post("/generate-subtitles")
-async def subtitleEndpoint(file: UploadFile=File(...), font: str=Form(...)):
+async def subtitleEndpoint(background_tasks: BackgroundTasks, file: UploadFile=File(...), font: str=Form(...)):
     logger.info('generating subtitles...')
 
-    #process input file
+    file_uuid = uuid.uuid4()
+    video_path = "video-" + str(file_uuid) + ".mp4"
+    srt_path = "subtitles-" + str(file_uuid) + ".srt"
+    output_path = "generated-file" + "-" + str(file_uuid) + "-" + file.filename
+
+    logger.info(video_path)
+    logger.info(srt_path)
+    logger.info(output_path)
+
+    #process input file into numpy array to be used by whisper model
     file_content = await file.read()
     audio = AudioSegment.from_file(BytesIO(file_content))
     if audio.channels > 1:
@@ -42,20 +51,32 @@ async def subtitleEndpoint(file: UploadFile=File(...), font: str=Form(...)):
     word_timestamps = speechToText(samples)
 
     #convert the timestamps to an SRT file
-    generate_srt(word_timestamps, "output_captions.srt")
+    generate_srt(word_timestamps, srt_path)
 
     #save the uploaded mp4 to disk
-    save_upload_file(file, "output_video.mp4")
+    save_upload_file(file, video_path)
 
     #run the ffmpeg command on the uploaded mp4 file with the srt file
-    await add_subtitles()
+    await add_subtitles(srt_path, video_path, output_path)
 
     def file_streamer(file_path):
         with open(file_path, "rb") as file:
             yield from file
 
-    response = StreamingResponse(file_streamer("generated.mp4"), media_type="video/mp4")
-    return response   
+    response = StreamingResponse(file_streamer(output_path), media_type="video/mp4")
+    
+    background_tasks.add_task(cleanup_files, video_path, srt_path, output_path)
+    
+    return response
+
+def cleanup_files(*file_paths):
+    """Deletes all temporary files after response is sent."""
+    for file_path in file_paths:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            logger.info(f"Deleted {file_path}")
+        else:
+            logger.warning(f"File not found for deletion: {file_path}")
     
 
 def save_upload_file(upload_file: UploadFile, dest_path: str):
@@ -120,15 +141,14 @@ def format_time(seconds):
     return f"{hours:02}:{minutes:02}:{seconds:02},{milliseconds:03}"
 
 
-async def add_subtitles():
+async def add_subtitles(srt_path, video_path, output_path):
     logger.info("Running FFMPEG command...")
 
     command = [
         "ffmpeg",
-        "-i", "output_video.mp4",
-        "-vf", f"subtitles=output_captions.srt",
+        "-i", video_path,
+        "-vf", f"subtitles={srt_path}",
         "-c:a", "copy",
-        "generated.mp4"
+        output_path
     ]
     await asyncio.to_thread(subprocess.run, command, check=True)
-
