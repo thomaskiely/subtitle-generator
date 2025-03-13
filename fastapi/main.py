@@ -6,14 +6,13 @@ from fastapi.middleware.cors import CORSMiddleware
 import whisper
 from pydub import AudioSegment
 import numpy as np
-import io
-import tempfile
 import shutil
 import os
-from pathlib import Path
-from fastapi.responses import FileResponse
+import asyncio
+import logging
 
 app = FastAPI()
+logger = logging.getLogger()
 
 model = whisper.load_model("base")
 
@@ -28,7 +27,7 @@ app.add_middleware(
 
 @app.post("/generate-subtitles")
 async def subtitleEndpoint(file: UploadFile=File(...), font: str=Form(...)):
-
+    logger.info('generating subtitles...')
 
     #process input file
     file_content = await file.read()
@@ -39,21 +38,24 @@ async def subtitleEndpoint(file: UploadFile=File(...), font: str=Form(...)):
     samples = np.array(audio.get_array_of_samples(), dtype=np.float32)
     samples /= np.max(np.abs(samples))
     
-    input_file = BytesIO(file_content)
-    """ return StreamingResponse(input_file, 
-                             media_type=file.content_type,
-                             headers={"Content-Disposition": f"attachment; filename={file.filename}"}
-                            ) """
-
+    #call whisper to grab the timestamp/duration of each word
     word_timestamps = speechToText(samples)
-    generate_srt(word_timestamps)
-    save_upload_file(file, "output_video.mp4")
-    return StreamingResponse(input_file, 
-                             media_type=file.content_type,
-                             headers={"Content-Disposition": f"attachment; filename={file.filename}"}
-                            )
 
-   
+    #convert the timestamps to an SRT file
+    generate_srt(word_timestamps, "output_captions.srt")
+
+    #save the uploaded mp4 to disk
+    save_upload_file(file, "output_video.mp4")
+
+    #run the ffmpeg command on the uploaded mp4 file with the srt file
+    await add_subtitles()
+
+    def file_streamer(file_path):
+        with open(file_path, "rb") as file:
+            yield from file
+
+    response = StreamingResponse(file_streamer("generated.mp4"), media_type="video/mp4")
+    return response   
     
 
 def save_upload_file(upload_file: UploadFile, dest_path: str):
@@ -80,6 +82,8 @@ def speechToText(audio):
     - The audio file should be in a format supported by the Whisper model (e.g., MP3, WAV).
     """
 
+    logger.info("Generating timestamps...")
+
     wordTimestamps = []
     result = model.transcribe(audio, word_timestamps=True)
 
@@ -93,11 +97,9 @@ def speechToText(audio):
 
 
 
-def generate_srt(timestamps, output_path="output_captions.srt"):
+def generate_srt(timestamps, output_path):
+    logger.info("Generating SRT file...")
 
-    #process srt content as a string and use a temp file with ffmpeg
-    # Write to SRT file
-    #with open("output_captions.srt", "w") as srt_file:
     with open(output_path, "w", encoding="utf-8") as srt_file:
         for i, (text, start, end) in enumerate(timestamps):
             srt_file.write(f"{i + 1}\n")
@@ -116,4 +118,17 @@ def format_time(seconds):
     minutes, seconds = divmod(seconds, 60)
     hours, minutes = divmod(minutes, 60)
     return f"{hours:02}:{minutes:02}:{seconds:02},{milliseconds:03}"
+
+
+async def add_subtitles():
+    logger.info("Running FFMPEG command...")
+
+    command = [
+        "ffmpeg",
+        "-i", "output_video.mp4",
+        "-vf", f"subtitles=output_captions.srt",
+        "-c:a", "copy",
+        "generated.mp4"
+    ]
+    await asyncio.to_thread(subprocess.run, command, check=True)
 
