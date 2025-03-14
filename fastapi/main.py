@@ -11,6 +11,7 @@ import os
 import asyncio
 import logging
 import uuid
+from typing import Optional
 
 app = FastAPI()
 logger = logging.getLogger('uvicorn.error')
@@ -26,7 +27,13 @@ app.add_middleware(
 )
 
 @app.post("/generate-subtitles")
-async def subtitleEndpoint(background_tasks: BackgroundTasks, file: UploadFile=File(...), font: str=Form(...)):
+async def subtitleEndpoint(background_tasks: BackgroundTasks, 
+                           file: UploadFile=File(...), 
+                           font_style: Optional[str]=Form(...),
+                           font_size: Optional[str]=Form(...),
+                           bold: Optional[str]=Form(...),
+                           alignment: Optional[str]=Form(...)
+                           ):
     logger.info('generating subtitles...')
 
     file_uuid = uuid.uuid4()
@@ -46,6 +53,9 @@ async def subtitleEndpoint(background_tasks: BackgroundTasks, file: UploadFile=F
     audio = audio.set_frame_rate(16000)
     samples = np.array(audio.get_array_of_samples(), dtype=np.float32)
     samples /= np.max(np.abs(samples))
+
+    #setup style object
+    style = setup_style(font_style, font_size, bold, alignment)
     
     #call whisper to grab the timestamp/duration of each word
     word_timestamps = speechToText(samples)
@@ -57,11 +67,9 @@ async def subtitleEndpoint(background_tasks: BackgroundTasks, file: UploadFile=F
     save_upload_file(file, video_path)
 
     #run the ffmpeg command on the uploaded mp4 file with the srt file
-    await add_subtitles(srt_path, video_path, output_path)
+    await add_subtitles(srt_path, video_path, output_path, style)
 
-    def file_streamer(file_path):
-        with open(file_path, "rb") as file:
-            yield from file
+
 
     response = StreamingResponse(file_streamer(output_path), media_type="video/mp4")
     
@@ -69,6 +77,33 @@ async def subtitleEndpoint(background_tasks: BackgroundTasks, file: UploadFile=F
     
     return response
 
+def setup_style(font_style, font_size, bold, alignment):
+
+    #TODO handle None values
+    if bold == "true":
+        bold = 1
+    
+    if alignment == "top":
+        alignment = 6
+    
+    elif alignment == "bottom":
+        alignment = 2
+
+    style = (
+        f"force_style='Fontname={font_style},"
+        f"Fontsize={font_size},"
+        f"Bold={bold},"
+        f"Alignment={alignment}'"
+    )
+
+    return style
+
+#stream file content
+def file_streamer(file_path):
+    with open(file_path, "rb") as file:
+        yield from file
+
+#delete temp files from call
 def cleanup_files(*file_paths):
     """Deletes all temporary files after response is sent."""
     for file_path in file_paths:
@@ -97,10 +132,6 @@ def speechToText(audio):
     Returns:
     list of tuples: A list where each tuple contains a word, its start time, and its end time in the transcription.
                     Example: [("hello", 0.0, 0.5), ("world", 0.6, 1.2)]
-    
-    Note:
-    - This function assumes that the Whisper model is already loaded and available as `model`.
-    - The audio file should be in a format supported by the Whisper model (e.g., MP3, WAV).
     """
 
     logger.info("Generating timestamps...")
@@ -141,13 +172,13 @@ def format_time(seconds):
     return f"{hours:02}:{minutes:02}:{seconds:02},{milliseconds:03}"
 
 
-async def add_subtitles(srt_path, video_path, output_path):
+async def add_subtitles(srt_path, video_path, output_path, style_object):
     logger.info("Running FFMPEG command...")
 
     command = [
         "ffmpeg",
         "-i", video_path,
-        "-vf", f"subtitles={srt_path}",
+        "-vf", f"subtitles={srt_path}:{style_object}",
         "-c:a", "copy",
         output_path
     ]
