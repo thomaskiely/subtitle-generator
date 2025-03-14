@@ -29,10 +29,11 @@ app.add_middleware(
 @app.post("/generate-subtitles")
 async def subtitleEndpoint(background_tasks: BackgroundTasks, 
                            file: UploadFile=File(...), 
-                           font_style: Optional[str]=Form(...),
-                           font_size: Optional[str]=Form(...),
-                           bold: Optional[str]=Form(...),
-                           alignment: Optional[str]=Form(...)
+                           font_style: Optional[str]=Form(None),
+                           font_size: Optional[str]=Form(None),
+                           bold: Optional[bool]=Form(None),
+                           alignment: Optional[str]=Form(None),
+                           primary_color: Optional[str]=Form(None)
                            ):
     logger.info('generating subtitles...')
 
@@ -55,7 +56,7 @@ async def subtitleEndpoint(background_tasks: BackgroundTasks,
     samples /= np.max(np.abs(samples))
 
     #setup style object
-    style = setup_style(font_style, font_size, bold, alignment)
+    style = setup_style(font_style, font_size, bold, primary_color, alignment)
     
     #call whisper to grab the timestamp/duration of each word
     word_timestamps = speechToText(samples)
@@ -77,26 +78,39 @@ async def subtitleEndpoint(background_tasks: BackgroundTasks,
     
     return response
 
-def setup_style(font_style, font_size, bold, alignment):
+def setup_style(font_style, font_size, bold, primary_color, alignment):
 
-    #TODO handle None values
-    if bold == "true":
+    #Set some default style rules on None values since default FFMPEG ones look bad
+    alignment=2 if alignment is None else alignment
+    font_size=28 if font_size is None else font_size
+    font_style="Comic Sans MS" if font_style is None else font_style
+
+    logger.info(primary_color)
+    if bold == True:
         bold = 1
     
     if alignment == "top":
         alignment = 6
-    
     elif alignment == "bottom":
         alignment = 2
+    elif alignment == "center":
+        alignment = 10
+
 
     style = (
         f"force_style='Fontname={font_style},"
         f"Fontsize={font_size},"
         f"Bold={bold},"
+        f"PrimaryColour={convert_bgr(primary_color)},"
         f"Alignment={alignment}'"
     )
 
     return style
+
+def convert_bgr(hex_color):
+    hex_color = hex_color.lstrip("&H00")
+    r, g, b = hex_color[:2], hex_color[2:4], hex_color[4:6]
+    return f"&H00{b}{g}{r}"
 
 #stream file content
 def file_streamer(file_path):
