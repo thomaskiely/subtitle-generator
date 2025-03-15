@@ -11,8 +11,8 @@ import os
 import asyncio
 import logging
 import uuid
-from typing import Optional
-from typing import Iterator
+from typing import Optional, Iterator
+import aiofiles
 
 app = FastAPI()
 logger = logging.getLogger('uvicorn.error')
@@ -66,7 +66,7 @@ async def subtitleEndpoint(background_tasks: BackgroundTasks,
     generate_srt(word_timestamps, srt_path)
 
     #save the uploaded mp4 to disk
-    save_upload_file(file, video_path)
+    await save_upload_file(file, video_path)
 
     #run the ffmpeg command on the uploaded mp4 file with the srt file
     await add_subtitles(srt_path, video_path, output_path, style)
@@ -127,11 +127,11 @@ def cleanup_files(*file_paths: tuple) -> None:
             logger.warning(f"File not found for deletion: {file_path}")
     
 
-def save_upload_file(upload_file: UploadFile, dest_path: str) -> None:
+async def save_upload_file(upload_file: UploadFile, dest_path: str) -> None:
     """Saves an UploadFile to a given file path."""
     upload_file.file.seek(0)
-    with open(dest_path, "wb") as buffer:
-        shutil.copyfileobj(upload_file.file, buffer)
+    async with aiofiles.open(dest_path, "wb") as buffer:
+        await buffer.write(await upload_file.read())
 
 def speechToText(audio: np.ndarray) -> tuple:
     logger.info("Generating timestamps...")
