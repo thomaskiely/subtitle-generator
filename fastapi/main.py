@@ -33,10 +33,11 @@ async def subtitleEndpoint(background_tasks: BackgroundTasks,
                            font_style: Optional[str]=Form(None),
                            font_size: Optional[str]=Form(None),
                            bold: Optional[bool]=Form(None),
-                           alignment: Optional[str]=Form(None),
-                           primary_color: Optional[str]=Form(None)
+                           primary_color: Optional[str]=Form(None),
+                           outline_color: Optional[str]=Form(None),
+                           alignment: Optional[str]=Form(None)
                            ) -> StreamingResponse:
-    logger.info('generating subtitles...')
+    logger.info('Generating subtitles...')
 
     file_uuid = uuid.uuid4()
     video_path = "video-" + str(file_uuid) + ".mp4"
@@ -57,7 +58,7 @@ async def subtitleEndpoint(background_tasks: BackgroundTasks,
     samples /= np.max(np.abs(samples))
 
     #setup style object
-    style = setup_style(font_style, font_size, bold, primary_color, alignment)
+    style = setup_style(font_style, font_size, bold, primary_color, outline_color, alignment)
     
     #call whisper to grab the timestamp/duration of each word
     word_timestamps = speechToText(samples)
@@ -77,7 +78,7 @@ async def subtitleEndpoint(background_tasks: BackgroundTasks,
     
     return response
 
-def setup_style(font_style: str, font_size: str, bold: bool, primary_color: str, alignment: str) -> str:
+def setup_style(font_style: str, font_size: str, bold: bool, primary_color: str, outline_color:str, alignment: str) -> str:
 
     #Set some default style rules on None values since default FFMPEG ones look bad
     alignment=2 if alignment is None else alignment
@@ -101,13 +102,13 @@ def setup_style(font_style: str, font_size: str, bold: bool, primary_color: str,
         f"Fontsize={font_size},"
         f"Bold={bold},"
         f"PrimaryColour={convert_bgr(primary_color)},"
+        f"OutlineColour={convert_bgr(outline_color)},"
         f"Alignment={alignment}'"
     )
 
     return style
 
 def convert_bgr(hex_color: str) -> str:
-    hex_color = hex_color.lstrip("&H00")
     r, g, b = hex_color[:2], hex_color[2:4], hex_color[4:6]
     return f"&H00{b}{g}{r}"
 
