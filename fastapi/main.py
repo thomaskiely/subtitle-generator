@@ -6,7 +6,6 @@ from fastapi.middleware.cors import CORSMiddleware
 import whisper
 from pydub import AudioSegment
 import numpy as np
-import shutil
 import os
 import asyncio
 import logging
@@ -38,6 +37,8 @@ async def subtitleEndpoint(background_tasks: BackgroundTasks,
                            alignment: Optional[str]=Form(None)
                            ) -> StreamingResponse:
     logger.info('Generating subtitles...')
+
+    #TODO handle file size
 
     file_uuid = uuid.uuid4()
     video_path = "video-" + str(file_uuid) + ".mp4"
@@ -183,4 +184,10 @@ async def add_subtitles(srt_path: str, video_path: str, output_path: str, style_
         "-c:a", "copy",
         output_path
     ]
-    await asyncio.to_thread(subprocess.run, command, check=True)
+
+    try:
+        await asyncio.to_thread(subprocess.run, command, check=True)
+    except subprocess.CalledProcessError as e:
+        logger.error(f"FFMPEG command failed with error: {e}")
+    except Exception as e:
+        logger.error(f"Unexpected error running FFMPEG command: {e}")
