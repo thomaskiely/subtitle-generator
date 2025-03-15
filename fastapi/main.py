@@ -12,6 +12,7 @@ import asyncio
 import logging
 import uuid
 from typing import Optional
+from typing import Iterator
 
 app = FastAPI()
 logger = logging.getLogger('uvicorn.error')
@@ -34,7 +35,7 @@ async def subtitleEndpoint(background_tasks: BackgroundTasks,
                            bold: Optional[bool]=Form(None),
                            alignment: Optional[str]=Form(None),
                            primary_color: Optional[str]=Form(None)
-                           ):
+                           ) -> StreamingResponse:
     logger.info('generating subtitles...')
 
     file_uuid = uuid.uuid4()
@@ -70,15 +71,13 @@ async def subtitleEndpoint(background_tasks: BackgroundTasks,
     #run the ffmpeg command on the uploaded mp4 file with the srt file
     await add_subtitles(srt_path, video_path, output_path, style)
 
-
-
     response = StreamingResponse(file_streamer(output_path), media_type="video/mp4")
     
     background_tasks.add_task(cleanup_files, video_path, srt_path, output_path)
     
     return response
 
-def setup_style(font_style, font_size, bold, primary_color, alignment):
+def setup_style(font_style: str, font_size: str, bold: bool, primary_color: str, alignment: str) -> str:
 
     #Set some default style rules on None values since default FFMPEG ones look bad
     alignment=2 if alignment is None else alignment
@@ -107,18 +106,18 @@ def setup_style(font_style, font_size, bold, primary_color, alignment):
 
     return style
 
-def convert_bgr(hex_color):
+def convert_bgr(hex_color: str) -> str:
     hex_color = hex_color.lstrip("&H00")
     r, g, b = hex_color[:2], hex_color[2:4], hex_color[4:6]
     return f"&H00{b}{g}{r}"
 
 #stream file content
-def file_streamer(file_path):
+def file_streamer(file_path: str) -> Iterator[bytes]:
     with open(file_path, "rb") as file:
         yield from file
 
 #delete temp files from call
-def cleanup_files(*file_paths):
+def cleanup_files(*file_paths: tuple) -> None:
     """Deletes all temporary files after response is sent."""
     for file_path in file_paths:
         if os.path.exists(file_path):
@@ -128,26 +127,13 @@ def cleanup_files(*file_paths):
             logger.warning(f"File not found for deletion: {file_path}")
     
 
-def save_upload_file(upload_file: UploadFile, dest_path: str):
+def save_upload_file(upload_file: UploadFile, dest_path: str) -> None:
     """Saves an UploadFile to a given file path."""
     upload_file.file.seek(0)
     with open(dest_path, "wb") as buffer:
         shutil.copyfileobj(upload_file.file, buffer)
 
-def speechToText(audio):
-    """
-    Converts speech from an audio file to text, providing word-level timestamps.
-
-    Uses OpenAI's Whisper model to transcribe the given audio file, and returns a list of words with their respective start and end timestamps.
-
-    Parameters:
-    audio (str or Path): The audio file (in a compatible format) to be transcribed.
-
-    Returns:
-    list of tuples: A list where each tuple contains a word, its start time, and its end time in the transcription.
-                    Example: [("hello", 0.0, 0.5), ("world", 0.6, 1.2)]
-    """
-
+def speechToText(audio: np.ndarray) -> tuple:
     logger.info("Generating timestamps...")
 
     wordTimestamps = []
@@ -163,7 +149,7 @@ def speechToText(audio):
 
 
 
-def generate_srt(timestamps, output_path):
+def generate_srt(timestamps: tuple, output_path: str) -> str:
     logger.info("Generating SRT file...")
 
     with open(output_path, "w", encoding="utf-8") as srt_file:
@@ -175,7 +161,7 @@ def generate_srt(timestamps, output_path):
     
     return output_path
 
-def format_time(seconds):
+def format_time(seconds: str) -> str:
     """
     Formats seconds into SRT timestamp format (HH:MM:SS,ms).
     """
@@ -186,7 +172,7 @@ def format_time(seconds):
     return f"{hours:02}:{minutes:02}:{seconds:02},{milliseconds:03}"
 
 
-async def add_subtitles(srt_path, video_path, output_path, style_object):
+async def add_subtitles(srt_path: str, video_path: str, output_path: str, style_object: str) -> None:
     logger.info("Running FFMPEG command...")
 
     command = [
