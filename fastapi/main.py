@@ -38,7 +38,7 @@ async def subtitleEndpoint(background_tasks: BackgroundTasks,
                            ) -> StreamingResponse:
     logger.info('Generating subtitles...')
 
-    #TODO handle file size
+    #TODO handle file size in an if else based on environmet
 
     file_uuid = uuid.uuid4()
     video_path = "video-" + str(file_uuid) + ".mp4"
@@ -82,10 +82,10 @@ async def subtitleEndpoint(background_tasks: BackgroundTasks,
 def setup_style(font_style: str, font_size: str, bold: bool, primary_color: str, outline_color:str, alignment: str) -> str:
 
     #Set some default style rules on None values since default FFMPEG ones look bad
-    alignment=2 if alignment is None or "" else alignment
-    font_size=28 if font_size is None or ""else font_size
-    primary_color='ffffff' if primary_color is None or "" else primary_color
-    font_style="Comic Sans MS" if font_style is None or "" else font_style
+    alignment=2 if alignment is None or alignment=="" else alignment
+    font_size=28 if font_size is None or font_size=="" else font_size
+    primary_color='ffffff' if primary_color is None or primary_color=="" else primary_color
+    font_style="Comic Sans MS" if font_style is None or font_style=="" else font_style
 
     logger.info(primary_color)
     if bold == True:
@@ -99,7 +99,7 @@ def setup_style(font_style: str, font_size: str, bold: bool, primary_color: str,
         alignment = 10
 
     #have to handle outline color like this since setting a default value looks bad
-    if(outline_color is None or ""):
+    if(outline_color is None or outline_color==""):
         style = (
             f"force_style='Fontname={font_style},"
             f"Fontsize={font_size},"

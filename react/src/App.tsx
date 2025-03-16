@@ -12,6 +12,10 @@ const App = () => {
   const [fontSize, setFontSize] = useState<string>('');
   const [bold, setBold] = useState<string>('False');
   const [alignment, setAlignment] = useState<string>('');
+  const [fontColor, setFontColor] = useState<string>('#ffffff');
+  //TODO Fix this section of the form
+  const [useOutlineColor, setUseOutlineColor] = useState<boolean>(false);
+  const [outlineColor, setOutlineColor] = useState<string>('#ffffff');
   const [downloadLink, setDownloadLink] = useState<string | null>(null);
   const [showDownload, setShowDownload] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -28,6 +32,14 @@ const App = () => {
     setFont(event.target.value);
   };
 
+  const handleFontColorChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setFontColor(event.target.value);
+  };
+
+  const handleOutlineColorChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setOutlineColor(event.target.value);
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setShowDownload(false);
@@ -38,12 +50,14 @@ const App = () => {
 
     setIsLoading(true);
 
+    //TODO only append if there is an actual value, api can handle null values
     const formData = new FormData();
     formData.append("file", selectedFile);
     formData.append("font_style", font);
     formData.append("font_size", fontSize);
     formData.append("bold", bold);
-    formData.append("alignment", alignment)
+    formData.append("alignment", alignment);
+    formData.append("primary_color", fontColor.slice(1))
 
     try {
       const response = await fetch("http://127.0.0.1:8000/generate-subtitles", {
@@ -134,6 +148,38 @@ const App = () => {
               <option value="Bottom">Bottom</option>
               <option value="Center">Center</option>
             </select>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="font-color">Font Color</label>
+            <input 
+              type="color" 
+              id="font-color" 
+              value={fontColor} 
+              onChange={handleFontColorChange}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="use-outline-color">
+              <input 
+                type="checkbox" 
+                id="use-outline-color" 
+                checked={useOutlineColor} 
+                onChange={handleOutlineColorChange}
+              />
+              Use Outline Color
+            </label>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="outline-color">Outline Color</label>
+            <input 
+              type="color" 
+              id="font-color" 
+              value={outlineColor} 
+              onChange={handleOutlineColorChange} 
+            />
           </div>
 
         <button type="submit">Upload</button>
