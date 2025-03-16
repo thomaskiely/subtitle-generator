@@ -82,30 +82,41 @@ async def subtitleEndpoint(background_tasks: BackgroundTasks,
 def setup_style(font_style: str, font_size: str, bold: bool, primary_color: str, outline_color:str, alignment: str) -> str:
 
     #Set some default style rules on None values since default FFMPEG ones look bad
-    alignment=2 if alignment is None else alignment
-    font_size=28 if font_size is None else font_size
-    font_style="Comic Sans MS" if font_style is None else font_style
+    alignment=2 if alignment is None or "" else alignment
+    font_size=28 if font_size is None or ""else font_size
+    primary_color='ffffff' if primary_color is None or "" else primary_color
+    font_style="Comic Sans MS" if font_style is None or "" else font_style
 
     logger.info(primary_color)
     if bold == True:
         bold = 1
     
-    if alignment == "top":
+    if alignment == "Top":
         alignment = 6
-    elif alignment == "bottom":
+    elif alignment == "Bottom":
         alignment = 2
-    elif alignment == "center":
+    elif alignment == "Center":
         alignment = 10
 
+    #have to handle outline color like this since setting a default value looks bad
+    if(outline_color is None or ""):
+        style = (
+            f"force_style='Fontname={font_style},"
+            f"Fontsize={font_size},"
+            f"Bold={bold},"
+            f"PrimaryColour={convert_bgr(primary_color)},"
+            f"Alignment={alignment}'"
+        )
 
-    style = (
-        f"force_style='Fontname={font_style},"
-        f"Fontsize={font_size},"
-        f"Bold={bold},"
-        f"PrimaryColour={convert_bgr(primary_color)},"
-        f"OutlineColour={convert_bgr(outline_color)},"
-        f"Alignment={alignment}'"
-    )
+    else:
+        style = (
+            f"force_style='Fontname={font_style},"
+            f"Fontsize={font_size},"
+            f"Bold={bold},"
+            f"PrimaryColour={convert_bgr(primary_color)},"
+            f"OutlineColour={convert_bgr(outline_color)},"
+            f"Alignment={alignment}'"
+        )
 
     return style
 
