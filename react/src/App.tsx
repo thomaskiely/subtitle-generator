@@ -8,13 +8,12 @@ const ffmpegFonts = [
 
 const App = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [font, setFont] = useState<string>('');
+  const [font, setFont] = useState<string>('Comic Sans MS');
   const [fontSize, setFontSize] = useState<string>('');
   const [bold, setBold] = useState<string>('False');
-  const [alignment, setAlignment] = useState<string>('');
+  const [alignment, setAlignment] = useState<string>('Bottom');
   const [fontColor, setFontColor] = useState<string>('#ffffff');
-  //TODO Fix this section of the form
-  const [useOutlineColor, setUseOutlineColor] = useState<boolean>(false);
+  const [useOutline, setUseOutline] = useState<string>('False');
   const [outlineColor, setOutlineColor] = useState<string>('#ffffff');
   const [downloadLink, setDownloadLink] = useState<string | null>(null);
   const [showDownload, setShowDownload] = useState<boolean>(false);
@@ -59,6 +58,10 @@ const App = () => {
     formData.append("alignment", alignment);
     formData.append("primary_color", fontColor.slice(1))
 
+    if(useOutline==='True'){
+      formData.append("outline_color", outlineColor.slice(1));
+    }
+
     try {
       const response = await fetch("http://127.0.0.1:8000/generate-subtitles", {
         method: "POST",
@@ -93,7 +96,7 @@ const App = () => {
   return (
     <div>
       <form onSubmit={handleSubmit}>
-        <h2>Upload Subtitle File</h2>
+        <h2>Subtitle Generator</h2>
 
         {/* File Upload Section */}
         <div className="form-group">
@@ -112,7 +115,6 @@ const App = () => {
         <div className="form-group">
           <label htmlFor="font-select">Font Style</label>
           <select id="font-select" value={font} onChange={handleFontChange}>
-            <option value="">-- No font selected --</option>
             {ffmpegFonts.map((fontName) => (
               <option key={fontName} value={fontName}>
                 {fontName}
@@ -143,7 +145,6 @@ const App = () => {
           <div className="form-group">
             <label htmlFor="alignment">Alignment</label>
             <select value={alignment} onChange={(e) => setAlignment(e.target.value)}>
-              <option value="">-- No alignment selected --</option>
               <option value="Top">Top</option>
               <option value="Bottom">Bottom</option>
               <option value="Center">Center</option>
@@ -159,17 +160,14 @@ const App = () => {
               onChange={handleFontColorChange}
             />
           </div>
+          
 
           <div className="form-group">
-            <label htmlFor="use-outline-color">
-              <input 
-                type="checkbox" 
-                id="use-outline-color" 
-                checked={useOutlineColor} 
-                onChange={handleOutlineColorChange}
-              />
-              Use Outline Color
-            </label>
+            <label htmlFor="use-outline">Use Outline</label>
+            <select value={useOutline} onChange={(e) => setUseOutline(e.target.value)}>
+              <option value="False">False</option>
+              <option value="True">True</option>
+            </select>
           </div>
 
           <div className="form-group">
