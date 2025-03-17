@@ -104,8 +104,6 @@ const App = () => {
     <div>
       <form onSubmit={handleSubmit}>
         <h2>Subtitle Generator</h2>
-
-        {/* File Upload Section */}
         <div className="form-group">
           <label htmlFor="file-upload">
             Choose a file <span className="required">*</span>
@@ -118,7 +116,6 @@ const App = () => {
           />
         </div>
 
-        {/* Font Selection Section */}
         <div className="form-group">
           <label htmlFor="font-select">Font Style</label>
           <select id="font-select" value={font} onChange={handleFontChange}>
