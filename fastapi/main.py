@@ -97,7 +97,6 @@ def setup_style(font_style: str, font_size: str, bold: bool, primary_color: str,
     primary_color='ffffff' if primary_color is None or primary_color=="" else primary_color
     font_style="Comic Sans MS" if font_style is None or font_style=="" else font_style
 
-    logger.info(primary_color)
     if bold == True:
         bold = 1
     
