@@ -69,7 +69,13 @@ const App = () => {
         body: formData,
       });
 
-      if (!response.ok) {
+      if (!response.ok) {if (response.status === 400) {
+        const errorData = await response.json();
+        if (errorData.detail === "File size exceeds limit") {
+          setErrorMessage("The uploaded file is too large. Please choose a smaller file.");
+          return;
+        }
+      }
         console.error("Failed to upload file:", response.statusText);
         throw new Error("Error uploading file");
       }
