@@ -12,19 +12,19 @@ import logging
 import uuid
 from typing import Optional, Iterator
 import aiofiles
+from dotenv import load_dotenv
 
 app = FastAPI()
 logger = logging.getLogger('uvicorn.error')
 model = whisper.load_model("base")
 
-# Allow CORS from specific origins (like your React app's port)
-#TODO move this to env
+#TODO move this to env and update for live environment
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # React app's address
+    allow_origins=["http://localhost:5173"],
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.post("/generate-subtitles")
@@ -39,15 +39,14 @@ async def subtitleEndpoint(background_tasks: BackgroundTasks,
                            ) -> StreamingResponse:
     logger.info('Generating subtitles...')
 
-    
+    load_dotenv()
     environment = os.getenv('ENV')
     file_size = len(await file.read())
     file.file.seek(0)
-    logger.info("upload size")
-    logger.info(file_size)
+   
     max_file_size = 1
-    #if(environment != 'local' and file_size>max_file_size):
-        #raise HTTPException(status_code=400, detail="File size exceeds limit")
+    if(environment != 'local' and file_size>max_file_size):
+        raise HTTPException(status_code=400, detail="File size exceeds limit")
 
 
     file_uuid = uuid.uuid4()

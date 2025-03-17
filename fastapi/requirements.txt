@@ -7,3 +7,4 @@ pydub
 whisper
 numpy
 aiofiles
+python-dotenv
