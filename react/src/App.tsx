@@ -49,7 +49,6 @@ const App = () => {
 
     setIsLoading(true);
 
-    //TODO only append if there is an actual value, api can handle null values
     const formData = new FormData();
     formData.append("file", selectedFile);
     formData.append("font_style", font);
@@ -62,8 +61,10 @@ const App = () => {
       formData.append("outline_color", outlineColor.slice(1));
     }
 
+    const subtitleEndpoint = import.meta.env.VITE_SUBTITLE_ENDPOINT;
+
     try {
-      const response = await fetch("http://127.0.0.1:8000/generate-subtitles", {
+      const response = await fetch(`${subtitleEndpoint}`, {
         method: "POST",
         body: formData,
       });

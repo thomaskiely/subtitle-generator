@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, Form, BackgroundTasks
+from fastapi import FastAPI, File, UploadFile, Form, BackgroundTasks, HTTPException
 from fastapi.responses import StreamingResponse
 import subprocess
 from io import BytesIO
@@ -18,6 +18,7 @@ logger = logging.getLogger('uvicorn.error')
 model = whisper.load_model("base")
 
 # Allow CORS from specific origins (like your React app's port)
+#TODO move this to env
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],  # React app's address
@@ -38,7 +39,16 @@ async def subtitleEndpoint(background_tasks: BackgroundTasks,
                            ) -> StreamingResponse:
     logger.info('Generating subtitles...')
 
-    #TODO handle file size in an if else based on environmet
+    
+    environment = os.getenv('ENV')
+    file_size = len(await file.read())
+    file.file.seek(0)
+    logger.info("upload size")
+    logger.info(file_size)
+    max_file_size = 1
+    #if(environment != 'local' and file_size>max_file_size):
+        #raise HTTPException(status_code=400, detail="File size exceeds limit")
+
 
     file_uuid = uuid.uuid4()
     video_path = "video-" + str(file_uuid) + ".mp4"
