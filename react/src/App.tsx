@@ -198,7 +198,7 @@ const App = () => {
         {/* Show the download button if the file is ready */}
         {downloadLink && showDownload && (
           <div className="download-button">
-            <a href={downloadLink} download="generated.mp4">
+            <a href={downloadLink} download={selectedFile ? "subtitled-" + selectedFile.name : "generated.mp4"}>
               <button type="button" onClick={handleDownload}>
                 Download Processed File
               </button>
