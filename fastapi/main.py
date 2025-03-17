@@ -44,6 +44,7 @@ async def subtitleEndpoint(background_tasks: BackgroundTasks,
     file_size = len(await file.read())
     file.file.seek(0)
    
+    #TODO update for live env
     max_file_size = 1
     if(environment != 'local' and file_size>max_file_size):
         raise HTTPException(status_code=400, detail="File size exceeds limit")
