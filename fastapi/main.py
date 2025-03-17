@@ -55,10 +55,6 @@ async def subtitleEndpoint(background_tasks: BackgroundTasks,
     srt_path = "subtitles-" + str(file_uuid) + ".srt"
     output_path = "generated-file" + "-" + str(file_uuid) + "-" + file.filename
 
-    logger.info(video_path)
-    logger.info(srt_path)
-    logger.info(output_path)
-
     #process input file into numpy array to be used by whisper model
     file_content = await file.read()
     audio = AudioSegment.from_file(BytesIO(file_content))
