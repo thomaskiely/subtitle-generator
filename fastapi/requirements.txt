@@ -4,7 +4,7 @@ gunicorn
 ffmpeg-python
 python-multipart
 pydub
-whisper
+git+https://github.com/openai/whisper.git
 numpy
 aiofiles
 python-dotenv
