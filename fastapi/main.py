@@ -19,12 +19,18 @@ logger = logging.getLogger('uvicorn.error')
 model = whisper.load_model("base")
 
 #TODO move this to env and update for live environment
+load_dotenv()
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
+allowed_methods = os.getenv("ALLOWED_METHODS", "").split(",")
+allowed_headers = os.getenv("ALLOWED_HEADERS", "").split(",")
+allowed_credentials = os.getenv("ALLOW_CREDENTIALS", "").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=allowed_origins,
+    allow_credentials=allowed_credentials,
+    allow_methods=allowed_methods,
+    allow_headers=allowed_headers
 )
 
 @app.post("/generate-subtitles")
@@ -39,7 +45,7 @@ async def subtitleEndpoint(background_tasks: BackgroundTasks,
                            ) -> StreamingResponse:
     logger.info('Generating subtitles...')
 
-    load_dotenv()
+    
     environment = os.getenv('ENV')
     file_size = len(await file.read())
     file.file.seek(0)
