@@ -1,5 +1,6 @@
 fastapi
 uvicorn
+gunicorn
 ffmpeg-python
 python-multipart
 pydub
